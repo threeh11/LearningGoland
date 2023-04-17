@@ -15,15 +15,18 @@ type sortKey struct {
 
 // Создаем элемент дерева
 type elementThree struct {
-	element    sortKey
-	parentNode *int
-	code       byte
+	element string
+	count   int
+	parentNode,
+	leftChild,
+	rightChild *elementThree
+	code byte
 }
 
 func main() {
 	resultAfterReadFile := readFile("test.txt")
 	tableLetterFrequency := createTableLetterFrequency(resultAfterReadFile)
-	createHaffmanThreeWithTableLetterFrequency(tableLetterFrequency)
+	createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency)
 }
 
 func readFile(fileName string) string {
@@ -110,6 +113,65 @@ func sortMapByAscendingLetterFrequency(inputMap map[rune]int) []sortKey {
 	return arraySortKey
 }
 
-func createHaffmanThreeWithTableLetterFrequency(tableLetterFrequency []sortKey) map[rune]byte {
+func createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency []sortKey) {
+	var huffmanThree []elementThree
 
+	for _, element := range tableLetterFrequency {
+		huffmanThree = append(huffmanThree, elementThree{
+			element:    string(element.letter),
+			count:      element.count,
+			parentNode: nil,
+			leftChild:  nil,
+			rightChild: nil,
+			code:       1,
+		})
+	}
+
+	for len(huffmanThree) >= 2 {
+		leftChild, rightChild := getTwoLastMin(huffmanThree)
+		parentNode := getNewElement(&leftChild, &rightChild)
+		leftChild.parentNode = &parentNode
+		rightChild.parentNode = &parentNode
+		leftChild.code = 1
+		rightChild.code = 0
+
+		huffmanThree = huffmanThree[:len(huffmanThree)-1]
+		huffmanThree = huffmanThree[:len(huffmanThree)-1]
+
+		huffmanThree = append(huffmanThree, parentNode)
+
+		sort.Slice(huffmanThree, func(i, j int) bool {
+			return huffmanThree[i].count > huffmanThree[j].count
+		})
+	}
+	fmt.Println(huffmanThree[0].rightChild, huffmanThree[0].leftChild)
+}
+
+func getTwoLastMin(values []elementThree) (elementThree, elementThree) {
+	min1, min2 := values[0], values[1]
+	if min2.count < min1.count {
+		min1, min2 = min2, min1
+	}
+
+	for i := 2; i < len(values); i++ {
+		if values[i].count < min1.count {
+			min2 = min1
+			min1 = values[i]
+		} else if values[i].count < min2.count {
+			min2 = values[i]
+		}
+	}
+
+	return min1, min2
+}
+
+func getNewElement(leftElement *elementThree, rightElement *elementThree) elementThree {
+	return elementThree{
+		element:    leftElement.element + rightElement.element,
+		count:      leftElement.count + rightElement.count,
+		parentNode: nil,
+		leftChild:  leftElement,
+		rightChild: rightElement,
+		code:       1,
+	}
 }
