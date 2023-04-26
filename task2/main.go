@@ -161,9 +161,10 @@ func createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency []sortKey) 
 func getTwoLastMin(values []elementThree) (elementThree, int, elementThree, int) {
 	min1, min2 := values[0], values[1]
 	min1Index := 0
-	min2Index := 0
+	min2Index := 1
 	if min2.count < min1.count {
 		min1, min2 = min2, min1
+		min1Index, min2Index = min2Index, min1Index
 	}
 
 	for i := 2; i < len(values); i++ {
