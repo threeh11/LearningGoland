@@ -15,18 +15,22 @@ type sortKey struct {
 
 // Создаем элемент дерева
 type elementThree struct {
-	element string
-	count   int
+	letter string
+	count  int
 	parentNode,
 	leftChild,
 	rightChild *elementThree
-	code byte
+	code      byte
+	isParent  bool
+	isChild   bool
+	isChecked bool
 }
 
 func main() {
-	resultAfterReadFile := readFile("test.txt")
+	resultAfterReadFile := readFile("test2.txt")
 	tableLetterFrequency := createTableLetterFrequency(resultAfterReadFile)
-	createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency)
+	resultThreeHuffman := createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency)
+	getAlphabetForEncodingFile(resultThreeHuffman[0], tableLetterFrequency)
 }
 
 func readFile(fileName string) string {
@@ -113,42 +117,51 @@ func sortMapByAscendingLetterFrequency(inputMap map[rune]int) []sortKey {
 	return arraySortKey
 }
 
-func createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency []sortKey) {
+func createHuffmanThreeWithTableLetterFrequency(tableLetterFrequency []sortKey) []elementThree {
 	var huffmanThree []elementThree
 
 	for _, element := range tableLetterFrequency {
 		huffmanThree = append(huffmanThree, elementThree{
-			element:    string(element.letter),
+			letter:     string(element.letter),
 			count:      element.count,
 			parentNode: nil,
 			leftChild:  nil,
 			rightChild: nil,
 			code:       1,
+			isChild:    true,
 		})
 	}
 
-	for len(huffmanThree) >= 2 {
-		leftChild, rightChild := getTwoLastMin(huffmanThree)
+	for len(huffmanThree) > 1 {
+		var lIndex, rIndex int
+		leftChild, lIndex, rightChild, rIndex := getTwoLastMin(huffmanThree)
 		parentNode := getNewElement(&leftChild, &rightChild)
 		leftChild.parentNode = &parentNode
 		rightChild.parentNode = &parentNode
 		leftChild.code = 1
 		rightChild.code = 0
 
-		huffmanThree = huffmanThree[:len(huffmanThree)-1]
-		huffmanThree = huffmanThree[:len(huffmanThree)-1]
+		if len(huffmanThree) >= 3 {
+			huffmanThree = append(huffmanThree[:lIndex], huffmanThree[lIndex+1:]...)
+			if rIndex == 0 {
+				rIndex = 1
+			}
+			huffmanThree = append(huffmanThree[:rIndex-1], huffmanThree[rIndex:]...)
+		} else {
+			huffmanThree = huffmanThree[:len(huffmanThree)-1]
+			huffmanThree = huffmanThree[:len(huffmanThree)-1]
+		}
 
 		huffmanThree = append(huffmanThree, parentNode)
-
-		sort.Slice(huffmanThree, func(i, j int) bool {
-			return huffmanThree[i].count > huffmanThree[j].count
-		})
 	}
-	fmt.Println(huffmanThree[0].rightChild, huffmanThree[0].leftChild)
+
+	return huffmanThree
 }
 
-func getTwoLastMin(values []elementThree) (elementThree, elementThree) {
+func getTwoLastMin(values []elementThree) (elementThree, int, elementThree, int) {
 	min1, min2 := values[0], values[1]
+	min1Index := 0
+	min2Index := 0
 	if min2.count < min1.count {
 		min1, min2 = min2, min1
 	}
@@ -157,21 +170,59 @@ func getTwoLastMin(values []elementThree) (elementThree, elementThree) {
 		if values[i].count < min1.count {
 			min2 = min1
 			min1 = values[i]
+			min1Index = i
 		} else if values[i].count < min2.count {
 			min2 = values[i]
+			min2Index = i
 		}
 	}
 
-	return min1, min2
+	return min1, min1Index, min2, min2Index
 }
 
 func getNewElement(leftElement *elementThree, rightElement *elementThree) elementThree {
 	return elementThree{
-		element:    leftElement.element + rightElement.element,
+		letter:     leftElement.letter + rightElement.letter,
 		count:      leftElement.count + rightElement.count,
 		parentNode: nil,
 		leftChild:  leftElement,
 		rightChild: rightElement,
 		code:       1,
+		isParent:   true,
+		isChecked:  false,
 	}
+}
+
+func getAlphabetForEncodingFile(topThree elementThree, tableLetterFrequency []sortKey) {
+	resultAlphabet := make(map[string]string)
+	for _, element := range tableLetterFrequency {
+		fmt.Print(element)
+		//resultAlphabet[string(element.letter)] = findLetterInThree(topThree, string(element.letter))
+	}
+	fmt.Print(resultAlphabet)
+}
+
+func findLetterInThree(currentTarget elementThree, letter string) string {
+	if currentTarget.isChild && currentTarget.letter == letter {
+		return getCodeByPosition(currentTarget)
+	} else {
+		if !currentTarget.leftChild.isChecked {
+			currentTarget = *currentTarget.leftChild
+		} else if !currentTarget.rightChild.isChecked {
+			currentTarget = *currentTarget.rightChild
+		} else {
+			currentTarget = *currentTarget.parentNode
+		}
+		findLetterInThree(currentTarget, letter)
+	}
+	return ""
+}
+
+func getCodeByPosition(currentElement elementThree) string {
+	resultCode := string(currentElement.code)
+	for currentElement.parentNode != nil {
+		resultCode += string(currentElement.code)
+		currentElement = *currentElement.parentNode
+	}
+	return resultCode
 }
